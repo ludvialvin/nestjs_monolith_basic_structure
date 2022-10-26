@@ -11,8 +11,11 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
    @Post()
-   create(@Body() createUserDto: CreateUserDto) {
-      return this.usersService.create(createUserDto);
+   @UseGuards(JwtAuthGuard,PermissionsGuard)
+   @Permissions('user:create')
+   async create(@Body() createUserDto: CreateUserDto) {
+      const result = await this.usersService.create(createUserDto);
+      throw new HttpException(result, result.statusCode);
    }
 
    @Get()
@@ -24,17 +27,26 @@ export class UsersController {
    }
 
    @Get(':id')
-   findOne(@Param('id') id: string) {
-      return this.usersService.findOne(+id);
+   @UseGuards(JwtAuthGuard,PermissionsGuard)
+   @Permissions('user:get')
+   async findOne(@Param('id') id: string) {
+      const result = await this.usersService.findOne(+id);
+      throw new HttpException(result, result.statusCode);
    }
 
    @Patch(':id')
-   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-      return this.usersService.update(+id, updateUserDto);
+   @UseGuards(JwtAuthGuard,PermissionsGuard)
+   @Permissions('user:update')
+   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+      const result = await this.usersService.update(+id, updateUserDto);
+      throw new HttpException(result, result.statusCode);
    }
 
    @Delete(':id')
-   remove(@Param('id') id: string) {
-      return this.usersService.remove(+id);
+   @UseGuards(JwtAuthGuard,PermissionsGuard)
+   @Permissions('user:delete')
+   async remove(@Param('id') id: string) {
+      const result = await this.usersService.remove(+id);
+      throw new HttpException(result, result.statusCode);
    }
 }

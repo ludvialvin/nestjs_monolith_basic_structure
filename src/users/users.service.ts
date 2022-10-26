@@ -15,8 +15,27 @@ export class UsersService {
       @InjectRepository(RefPermissions) private refpermissionsRepository: Repository<RefPermissions>,
    ) { }
 
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+  async create(createUserDto: CreateUserDto) {
+   const result = await this.userRepository
+   .createQueryBuilder("user")
+   .insert()
+   .into(User)
+   .values(createUserDto)
+   .execute()
+
+   if(result.raw > 0){
+      const response = new BasicResponse()
+      response.statusCode = HttpStatus.OK
+      response.message = "success"
+
+      return response
+   }
+
+   const response = new BasicResponse()
+   response.statusCode = HttpStatus.BAD_REQUEST
+   response.message = "failed"
+
+   return response
   }
 
   async findAll() {
@@ -43,16 +62,74 @@ export class UsersService {
    return response
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: number) {
+   const result = await this.userRepository
+   .createQueryBuilder("user")
+   .where("id= :id", { id: id })
+   .andWhere("is_deleted= :is_deleted", { is_deleted: 0 })
+   .getOne()
+
+   if(result){
+      const response = new BasicResponse()
+      response.statusCode = HttpStatus.OK
+      response.message = "success"
+      response.data = result
+
+      return response
+   }
+   
+   const response = new BasicResponse()
+   response.statusCode = HttpStatus.NOT_FOUND
+   response.message = "success"
+   response.data = []
+
+   return response
   }
 
-   update(id: number, updateUserDto: UpdateUserDto) {
-      return `This action updates a #${id} user`;
+   async update(id: number, updateUserDto: UpdateUserDto) {
+      const result = await this.userRepository
+      .createQueryBuilder("user")
+      .update()
+      .set(updateUserDto)
+      .where("id = :id", { id: id })
+      .execute()
+
+      if(result.affected > 0){
+         const response = new BasicResponse()
+         response.statusCode = HttpStatus.OK
+         response.message = "success"
+
+         return response
+      }   
+
+      const response = new BasicResponse()
+      response.statusCode = HttpStatus.BAD_REQUEST
+      response.message = "failed"
+
+      return response
    }
 
-   remove(id: number) {
-      return `This action removes a #${id} user`;
+   async remove(id: number) {
+      const result = await this.userRepository
+      .createQueryBuilder("user")
+      .update()
+      .set({is_deleted: 1})
+      .where("id = :id", { id: id })
+      .execute()
+
+      if(result.affected > 0){
+         const response = new BasicResponse()
+         response.statusCode = HttpStatus.OK
+         response.message = "success"
+
+         return response
+      }   
+
+      const response = new BasicResponse()
+      response.statusCode = HttpStatus.BAD_REQUEST
+      response.message = "failed"
+
+      return response
    }
 
    async findByEmail(email: string) {
