@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Auth } from './entities/auth.entity';
@@ -6,7 +6,6 @@ import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { jwtConstants } from 'src/config/constants';
-import { LogTokenDto } from './dto/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +17,7 @@ export class AuthService {
 
    async validateUser(username: string, password: string): Promise<any> {   
       const user = await this.usersService.findByEmail(username);
-      //const user = await this.usersService.findByUsername(username);
+
       if (user) {
          const isMatch = await bcrypt.compare(password, user.password);
 			
@@ -73,57 +72,71 @@ export class AuthService {
    async refreshToken(param) {
       const { sub, expireIn } = this.jwtService.verify(param.refresh_token);
       const userId = sub;
-  
-      const resAuth = await this.findById( userId)
+      const resAuth = await this.findById(userId)
   
       if (resAuth) {
-        const isRefreshTokenMatching = await bcrypt.compare(
-          param.refresh_token,
-          resAuth.refresh_token
-        );
+         const isRefreshTokenMatching = await bcrypt.compare(
+            param.refresh_token,
+            resAuth.refresh_token
+         );
      
         if (isRefreshTokenMatching) {
-          if (new Date() > new Date(expireIn)) {
+            if (new Date() > new Date(expireIn)) {
+               return {
+                  statusCode: HttpStatus.OK,
+                  status: "failed",
+                  message: "Refresh token expired"
+               };
+            } 
+
+				const user = await this.usersService.findById(userId);
+  
+            const payloadToken = { 
+					username: user.email, 
+         		sub: userId, 
+         		userGroupId: user.user_group_id
+				};
+
+				var expirydate = new Date();
+				expirydate.setDate(expirydate.getDate() + jwtConstants.refreshTokenExpire);
+				expirydate.toISOString();
+
+            const payloadRefreshToken = { sub: userId, expireIn: expirydate };
+  
+            const accessToken = this.jwtService.sign(payloadToken)
+            const refreshAccessToken = this.jwtService.sign(payloadRefreshToken)
+  
+            const dataLogToken = {
+               user_id: userId,
+               token: accessToken,
+               refresh_token: refreshAccessToken
+            }
+          
+            const logToken = this.logToken(dataLogToken)
+
+				//get permissions user & set
+				const resUserPermissions = await this.usersService.getUserPermissions(user.user_group_id);
+          
             return {
-              statusCode: HttpStatus.OK,
-              status: "failed",
-              message: "Refresh token expired"
+               statusCode: HttpStatus.OK,
+               status: "success",
+               access_token: accessToken,
+               refresh_token: refreshAccessToken,
+					userPermissions: resUserPermissions.list
             };
-          } 
-  
-          const payloadToken = { sub: resAuth.user_id };
-          const payloadRefreshToken = { sub: resAuth.user_id };
-  
-          const accessToken = this.jwtService.sign(payloadToken)
-          const refreshAccessToken = this.jwtService.sign(payloadRefreshToken)
-  
-          const dataLogToken = {
-            user_id: resAuth.user_id,
-            token: accessToken,
-            refresh_token: refreshAccessToken
-          }
-          
-          const logToken = this.logToken(dataLogToken)
-          
-          return {
-            statusCode: HttpStatus.OK,
-            status: "success",
-            access_token: accessToken,
-            refresh_token: refreshAccessToken,
-          };
-        }else{
-          return {
-            statusCode: HttpStatus.OK,
-            status: "failed",
-            message: "Refresh token not match"
-          };
-        }
+         }else{
+            return {
+               statusCode: HttpStatus.NOT_FOUND,
+               status: "failed",
+               message: "Refresh token not match"
+            };
+         }
       }
   
       return {
-        statusCode: HttpStatus.OK,
-        status: "failed",
-        message: "User with this id does not exist"
+         statusCode: HttpStatus.NOT_FOUND,
+         status: "failed",
+         message: "User with this id does not exist"
       };
    }
 
@@ -160,13 +173,13 @@ export class AuthService {
          return null
       }else{
          const now = new Date();
-         const created_date = now.toISOString();
+         const modified_date = now.toISOString();
          const hashedToken = await bcrypt.hash(data.token, 10);
          const hashedRefreshToken = await bcrypt.hash(data.refresh_token, 10);
          const dataLogToken = {
             token: hashedToken,
             refresh_token: hashedRefreshToken,
-            modified_date: created_date,
+            modified_date: modified_date,
          }
 
          const result = await this.authRepository

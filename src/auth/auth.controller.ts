@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, HttpStatus } from '@nestjs/common';
 import { LocalAuthGuard } from 'src/guards/local-auth.guard';
 import { AuthService } from './auth.service';
 
@@ -16,7 +16,17 @@ export class AuthController {
    }
 
    @Post('refresh')
-	async refreshToken(@Body() params) {
-		return await this.authService.refreshToken(params);
+	async refreshToken(@Body() params, @Request() request) {
+		const res =  await this.authService.refreshToken(params);
+      if(res.statusCode == HttpStatus.OK){
+         request.session.permissions = res.userPermissions;
+         return {
+            statusCode: res.statusCode,
+            status: res.status,
+            access_token: res.access_token,
+            refresh_token: res.refresh_token,
+         }
+      }
+      return res
 	}
 }

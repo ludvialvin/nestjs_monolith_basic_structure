@@ -173,6 +173,16 @@ export class UsersService {
       return result
    }
 
+   async findById(id: number) {
+      const result = await this.userRepository
+      .createQueryBuilder("user")
+      .where("id= :id", { id: id })
+      .andWhere("is_deleted= :is_deleted", { is_deleted: 0 })
+      .getOne()
+   
+      return result
+     }
+
    async getListPermission() {
       const result = await this.refpermissionsRepository
       .createQueryBuilder("ref_permissions")
@@ -181,7 +191,7 @@ export class UsersService {
       return result
    }
 
-   async getUserPermissions(userGroupId) {
+   async getUserPermissions(userGroupId: number) {
       const refPermissions = await this.getListPermission()
       
       let indexedArray: {[key: string]: object} = {}
@@ -216,9 +226,9 @@ export class UsersService {
       .getMany()
 
       return {
-          frontend: indexedArray,
-          backend: userPermissions,
-          list: arrList
+         frontend: indexedArray,
+         backend: userPermissions,
+         list: arrList
       }
    }
 
