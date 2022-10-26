@@ -5,7 +5,7 @@ import { Auth } from './entities/auth.entity';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { jwtConstants } from './constants';
+import { jwtConstants } from 'src/config/constants';
 import { LogTokenDto } from './dto/auth.dto';
 
 @Injectable()
@@ -35,9 +35,7 @@ export class AuthService {
       const payloadToken = { 
          username: user.email, 
          sub: user.id, 
-         userGroupId: user.userGroupId, 
-         acl: user.permissionsB,
-         permissions: user.permissions
+         userGroupId: user.userGroupId
       };
        
       var expirydate = new Date();

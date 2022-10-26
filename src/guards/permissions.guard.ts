@@ -14,11 +14,10 @@ export class PermissionsGuard implements CanActivate {
       context.getHandler(),
     );
 
-    const request = context.switchToHttp().getRequest();
-
-    /* const userPermissions = context.getArgs()[0].user.permissions;
-
-    
+    var userPermissions = context.getArgs()[0].session.permissions;
+      if(userPermissions == undefined){
+         userPermissions = [];
+      }
 
     if (!routePermissions) {
       return true;
@@ -29,8 +28,6 @@ export class PermissionsGuard implements CanActivate {
         userPermissions.includes(routePermission),
       );
 
-    return hasPermission(); */
-
-    return true
+    return hasPermission();
   }
 }
